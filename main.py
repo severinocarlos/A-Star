@@ -22,15 +22,26 @@ class AStar:
 
     def heuristic(self, currNode, no_dest):
         return self.matrix[currNode][no_dest]
-        
+    
+    def change_line(self, curr_node_color, neighboring_node_color, c, d):
+        cost = 0
+        if not curr_node_color:
+            curr_node_color = neighboring_node_color
+        else:
+            if curr_node_color != neighboring_node_color:
+                curr_node_color = neighboring_node_color
+                cost = 4
+
+        return curr_node_color, cost
+
     def build_way(self, start, goal):
         visited = []
         parents = []
         cost = {start: 0}
 
-        pq = [(0, start)]
+        pq = [(0, start, '')]
         while pq:
-            (_, currNode) = heapq.heappop(pq)
+            (_, currNode, curr_color) = heapq.heappop(pq)
             if currNode == goal:
                 parents.append(currNode)
                 break
@@ -38,7 +49,7 @@ class AStar:
             visited.append(currNode)
             children_aux = self.children(currNode)
             
-            for subCurrNode, dist, _ in children_aux:    
+            for subCurrNode, dist, neighbor_color in children_aux:    
                 if subCurrNode in visited:
                     if len(children_aux) == 1:
                         print(f'No way out in {subCurrNode} -> {currNode}! Try another way')
@@ -46,10 +57,11 @@ class AStar:
                 
                 cost_aux = cost[currNode] + dist # G(n)
                 if subCurrNode not in cost or cost_aux < cost[subCurrNode]:
-                    cost[subCurrNode] = cost_aux
+                    curr_color, transfer = self.change_line(curr_color, neighbor_color, currNode, subCurrNode)
+                    cost[subCurrNode] = cost_aux + transfer
+                    
                     f = cost_aux + self.heuristic(int(subCurrNode[1:]) - 1, int(goal[1:]) - 1) # f(n)
-
-                    heapq.heappush(pq, (f, subCurrNode))
+                    heapq.heappush(pq, (f, subCurrNode, curr_color))
 
                     if currNode not in parents:
                         parents.append(currNode)
@@ -104,8 +116,8 @@ if __name__ == '__main__':
     print('O caminho encontrado foi:')
     for x in range(len(way)):
         if x == len(way)-1:
-            print(f'E{way[x]}')
+            print(f'{way[x]}')
         else:
-            print(f'E{way[x]} ->', end=' ')
+            print(f'{way[x]} ->', end=' ')
     print(f'O tempo estimado de {start} -> {target} é de: {cost[target]} min')
     print('*'*44)
