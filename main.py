@@ -23,49 +23,61 @@ class AStar:
     def heuristic(self, currNode, no_dest):
         return self.matrix[currNode][no_dest]
     
-    def change_line(self, curr_node_color, neighboring_node_color, c, d):
-        cost = 0
-        if not curr_node_color:
-            curr_node_color = neighboring_node_color
-        else:
-            if curr_node_color != neighboring_node_color:
-                curr_node_color = neighboring_node_color
-                cost = 4
-
-        return curr_node_color, cost
-
+    def change_line(self, _parents, _neighbor_color, c, v):
+        _transfer = 0
+        
+        if _parents:
+            # [(11, azul)] 
+            if _parents[len(_parents) - 1][1] != _neighbor_color:
+                print(_parents)
+                print(f'pai: {c} filho: {v}')
+                print(f'baldeou: {_parents[len(_parents) - 1]} != {_neighbor_color}')
+                _transfer = 4
+    
+        return _transfer
+    
+    
     def build_way(self, start, goal):
         visited = []
         parents = []
         cost = {start: 0}
+        transfer = 0
 
         pq = [(0, start, '')]
         while pq:
             (_, currNode, curr_color) = heapq.heappop(pq)
+
             if currNode == goal:
-                parents.append(currNode)
+                parents.append((currNode, neighbor_color))
                 break
 
             visited.append(currNode)
             children_aux = self.children(currNode)
-            
+            # 2
             for subCurrNode, dist, neighbor_color in children_aux:    
                 if subCurrNode in visited:
                     if len(children_aux) == 1:
                         print(f'No way out in {subCurrNode} -> {currNode}! Try another way')
                     continue
-                
+                # 8
                 cost_aux = cost[currNode] + dist # G(n)
+
+
                 if subCurrNode not in cost or cost_aux < cost[subCurrNode]:
-                    curr_color, transfer = self.change_line(curr_color, neighbor_color, currNode, subCurrNode)
+                    check = False
+                    for node, _ in parents:
+                        if node == currNode:
+                            check = True
+                    if not check:
+                        print(currNode, neighbor_color)
+                        parents.append((currNode, neighbor_color)) # 9, vermelha
+                    
+                    transfer = self.change_line(parents, neighbor_color, currNode, subCurrNode)
                     cost[subCurrNode] = cost_aux + transfer
                     
                     f = cost_aux + self.heuristic(int(subCurrNode[1:]) - 1, int(goal[1:]) - 1) # f(n)
-                    heapq.heappush(pq, (f, subCurrNode, curr_color))
-
-                    if currNode not in parents:
-                        parents.append(currNode)
-        
+                    heapq.heappush(pq, (f, subCurrNode, neighbor_color)) # 2, azul / 8 , amarelA
+                    
         return parents, cost
 
 
@@ -86,6 +98,7 @@ realDistances = {
     'E13': [('E3', 37.4, 'vermelha'), ('E4', 25.6, 'verde'), ('E14', 10.2, 'verde')],
     'E14': [('E13', 10.2, 'verde')]
 }
+
 
 straightDistances = [
         [0,    10,   18.5, 24.8, 36.4, 38.8, 35.8, 25.4, 17.6, 9.1,  16.7, 27.3, 27.6, 29.8], 
