@@ -13,15 +13,15 @@ def cli() -> str:
     return _origin, _dest
 
 class AStar:
-    def __init__(self, _straightDist, _realDist) -> None:
-        self.matrix = _straightDist
-        self.graph = _realDist
+    def __init__(self, _straight_dist, _real_dist) -> None:
+        self.matrix = _straight_dist
+        self.graph = _real_dist
     
-    def children(self, node):
-        return self.graph[node]
+    def get_neighbors(self, root_node):
+        return self.graph[root_node]
 
-    def heuristic(self, currNode, no_dest):
-        return self.matrix[currNode][no_dest]
+    def heuristic(self, _root_node, _goal):
+        return self.matrix[_root_node][_goal]
     
     def change_line(self, _parents, _neighbor_color):
         _transfer = 0
@@ -32,14 +32,14 @@ class AStar:
     
         return _transfer
 
-    def connect(self, currNode, parents, auxColor) -> bool:
+    def connect(self, root_node, parents, auxColor) -> bool:
         connect = False
         if parents:
             for (auxNode, _, color) in self.graph[parents[len(parents)-1][0]]:
-                if auxNode == currNode and color == auxColor:
+                if auxNode == root_node and color == auxColor:
                     connect = True
         else:
-            connect = True        
+            connect = True     
         
         return connect
     
@@ -53,39 +53,43 @@ class AStar:
         pq = [(0, start, '')]
         while pq:
             print(f'Fronteira: {pq}\n')
-            (_, currNode, curr_color) = heapq.heappop(pq)
+            (_, root_node, curr_color) = heapq.heappop(pq)
 
-            if self.connect(currNode, parents, curr_color):
-                if currNode == goal:
-                    parents.append((currNode, curr_color))
+            # Só vamos expandir a fronteira se o nó analisado pela heap seja conectado com o anterior
+            if self.connect(root_node, parents, curr_color):
+                if root_node == goal:
+                    parents.append((root_node, curr_color))
                     break
 
-                visited.append(currNode)
-                children_aux = self.children(currNode)
+                visited.append(root_node)
+                neighbors = self.get_neighbors(root_node)
                 
-                for subCurrNode, dist, neighbor_color in children_aux:    
-                    if subCurrNode in visited:
-                        if len(children_aux) == 1:
-                            print(f'No way out in {subCurrNode} -> {currNode}! Try another way')
+                for border_node, dist, neighbor_color in neighbors:
+                    if border_node in visited:
+                        if len(neighbors) == 1:
+                            print(f'*** No way out in {border_node} -> {root_node}! Try another way ***\n')
                         continue
                     
-                    cost_aux = cost[currNode] + dist # G(n)
-                    if subCurrNode not in cost or cost_aux < cost[subCurrNode]:
+                    cost_aux = cost[root_node] + dist # G(n)
+                    if border_node not in cost or cost_aux < cost[border_node]:
                         check = False
                         for node, _ in parents:
-                            if node == currNode:
+                            if node == root_node:
                                 check = True
-                        if not check:
-                            if not parents:
-                                parents.append((currNode, neighbor_color)) 
-                            else:
-                                parents.append((currNode, curr_color))      
-
-                        transfer = self.change_line(parents, neighbor_color)
-                        cost[subCurrNode] = cost_aux + transfer
                         
-                        f = cost_aux + self.heuristic(int(subCurrNode[1:]) - 1, int(goal[1:]) - 1) #f(n)
-                        heapq.heappush(pq, (f, subCurrNode, neighbor_color))
+                        if not check:
+                            # a cor do nó inicial da busca será inicializado com a cor referente ao seu vizinho
+                            if not parents: 
+                                parents.append((root_node, neighbor_color)) 
+                            else:
+                                parents.append((root_node, curr_color))      
+                        
+                        # checando situação de baldeação de linha
+                        transfer = self.change_line(parents, neighbor_color)
+                        cost[border_node] = cost_aux + transfer
+                        
+                        f = cost[border_node] + self.heuristic(int(border_node[1:]) - 1, int(goal[1:]) - 1) # f(n)
+                        heapq.heappush(pq, (f, border_node, neighbor_color))
                     
         return parents, cost
 
@@ -138,8 +142,9 @@ if __name__ == '__main__':
     print('O caminho encontrado foi:')
     for x in range(len(way)):
         if x == len(way)-1:
-            print(f'{way[x]}')
+            print(f'({way[x][0]}, {way[x][1]})')
         else:
-            print(f'{way[x]} ->', end=' ')
-    print(f'O tempo estimado de {start} -> {target} é de: {cost[target]}min')
+            print(f'({way[x][0]}, {way[x][1]}) ->', end=' ')
+    print(f'\nCustos: {cost}')
+    print(f'O tempo estimado de ({start}) -> ({target}) é de: {cost[target]}min')
     print('*'*44)
